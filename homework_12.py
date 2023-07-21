@@ -97,6 +97,32 @@ class AddressBook(UserDict):
             yield list(self.data.values())[start:start+n]
             start += n
 
+    def save_to_disk(self, filename):
+        with open(filename, 'w') as file:
+            data = []
+            for record in self.values():
+                data.append({
+                    'name': record.name.value,
+                    'phone': record.phone.value if record.phone else None,
+                    'birthday': record.birthday.value.isoformat() if record.birthday else None
+                })
+            json.dump(data, file)
+
+    @classmethod
+    def load_from_disk(cls, filename):
+        with open(filename, 'r') as file:
+            data = json.load(file)
+            address_book = cls()
+            for item in data:
+                name = item['name']
+                phone = item['phone']
+                birthday = item['birthday'] if item['birthday'] else None
+                if birthday:
+                    birthday = Birthday(datetime.fromisoformat(birthday))
+                record = Record(Name(name), Phone(phone) if phone else None, birthday)
+                address_book.add_record(record)
+            return address_book
+
 def input_error(func):
     def inner(*args):
         try:
@@ -207,26 +233,28 @@ def main():
     while True:
         command = input("> ")
         if not process_command(command):
-            # Збереження адресної книги на диск перед виходом
+            
             save_address_book_to_disk(address_book, "address_book.json")
             break
 
 if __name__ == "__main__":
     main()
 
-# Додавання контактів в адресну книгу
-add_contact("John Doe 1234567890")  
-add_contact("Jane Smith 9876543210")  
-add_contact("Alice Johnson 1112223333")  
+address_book = AddressBook.load_from_disk("address_book.json")
 
+# Виведення привітання та доступних команд
+print("Welcome to your address book!")
+print("Available commands:")
+print("add <name> <phone> - Add a new contact")
+print("change <name> <phone> - Update phone number of an existing contact")
+print("phone <name> - Show phone number of a contact")
+print("show all - Show all contacts")
+print("exit - Save and exit")
 
-change_phone("Jane Smith 5555555555")  
-
-
-print(show_phone("John Doe"))  
-print(show_phone("Jane Smith"))  
-print(show_phone("Alice Johnson"))  
-
-
-all_contacts = show_all_contacts()
-print(all_contacts)
+# Запуск циклу для обробки команд користувача
+while True:
+    command = input("> ")
+    if not process_command(command):
+        # Збереження адресної книги на диск перед виходом
+        save_address_book_to_disk(address_book, "address_book.json")
+        break
